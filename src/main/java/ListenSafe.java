@@ -123,6 +123,9 @@ public class ListenSafe {
     	return res;
     }
     public static void main(String[] args) {
-       System.out.println( makeGetRequest("Glock In my lap"));
+    	System.out.println("Enter the Name of the song or the artist you wish to search\n\n");
+    	Scanner inputSearch =new Scanner(System.in);
+       System.out.println( makeGetRequest(inputSearch.nextLine()));
+       inputSearch.close();
     }
 }
