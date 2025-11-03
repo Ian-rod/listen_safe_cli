@@ -12,24 +12,14 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 public class ListenSafe {
     static String apiMainUrl="https://api.genius.com/";
+	//Get the list of words to filter
+	static List<String> wordsToFilter=getExplicitWords();
 
-    static List<String>search()
+    static List<JSONObject>search(String searchString)
     {
-        List<String> searchResult=new ArrayList<String>();
-        return searchResult;
-    }
-
-    static String makeGetRequest(String searchString)
-    {
-        ///Make the Get request to genius
     	searchString= URLEncoder.encode(searchString, StandardCharsets.UTF_8);;
-    	
-    	//Get the list of words to filter
-    	List<String> wordsToFilter=getExplicitWords();
-    	if(wordsToFilter.size()==0)
-    	{
-    		return "Words to filter cannot be empty";
-    	}
+        List<JSONObject> searchResult=new ArrayList<JSONObject>();
+        
         try { 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
@@ -44,63 +34,36 @@ public class ListenSafe {
         JSONArray hits = jsonResponse.getJSONArray("hits");
         
         
-        // Iterate over hits
+        // Iterate over hits populate it to the List
         for (int i = 0; i < hits.length(); i++) {
             JSONObject hit = hits.getJSONObject(i);
             JSONObject result=hit.getJSONObject("result");
-            System.out.println("Option to Select "+i);
-            System.out.println("Artist Name: " + result.getString("artist_names"));
-            System.out.println("Song title: " + result.getString("full_title"));
-            System.out.println();
+            searchResult.add(result);
         }
-        
-        Scanner inputScanner=new Scanner(System.in);
-        int input=0;
-        while(true)
-        {
-        	System.out.println("Enter 0.01 to exit");
-        	System.out.println("Enter an Option");
-        	input=inputScanner.nextInt();
-        	if(input==0.01)
-        	{
-                inputScanner.close();
-        		return "User requested To exit";	
-        	}
-        	else if(input>= hits.length())
-        	{
-        		continue;
-        	}
-        	String lyricUrl=hits.getJSONObject(input).getJSONObject("result").getString("url");
-        	String ArtistName=hits.getJSONObject(input).getJSONObject("result").getString("artist_names");
-        	String SongName=hits.getJSONObject(input).getJSONObject("result").getString("full_title");
-            HttpClient lyricClient = HttpClient.newHttpClient();
-            HttpRequest lyricRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(lyricUrl))
-                    .header("Authorization", "Bearer " + MyTokens.AccessToken)
-                    .GET()
-                    .build();
-            HttpResponse<String> lyricResponse = lyricClient.send(lyricRequest, HttpResponse.BodyHandlers.ofString());
-            String lyricsBody=lyricResponse.body().toLowerCase();
-            
-            for (String badword : wordsToFilter) {
-                if(lyricsBody.contains(badword))
-                {
-                	System.out.println();
-                	System.out.println("The song "+SongName+" By "+ArtistName+" has the explicit word "+badword);
-                }
-                else {
-                	/// System.out.println("The song is clean and safe to Listen");
-                }
-			}
+         
 
-        	System.out.println();
-        }
         } catch (Exception e) {
             System.out.println("Exception encountered : "+e.getMessage());
         }
-        
-        ///Return the body
-    return "";
+        return searchResult;
+    }
+
+    static String getLyrics(String lyricsUrl)
+    {  
+    	String lyricsBody="";
+    	try {
+    		  HttpClient lyricClient = HttpClient.newHttpClient();
+              HttpRequest lyricRequest = HttpRequest.newBuilder()
+                      .uri(URI.create(lyricsUrl))
+                      .header("Authorization", "Bearer " + MyTokens.AccessToken)
+                      .GET()
+                      .build();
+              HttpResponse<String> lyricResponse = lyricClient.send(lyricRequest, HttpResponse.BodyHandlers.ofString());
+              lyricsBody=lyricResponse.body().toLowerCase();
+		} catch (Exception e) {
+			 System.err.println("Exception encountered : "+e.getMessage());
+		}
+    	return lyricsBody;
     }
     
     static List<String> getExplicitWords()
@@ -118,14 +81,39 @@ public class ListenSafe {
 			
 		} catch (Exception e) {
 			// TODO: handle exception
-			System.out.println("Encountered Error : "+e.getLocalizedMessage());
+			System.err.println("Encountered Error : "+e.getLocalizedMessage());
 		}
     	return res;
     }
-    public static void main(String[] args) {
-    	System.out.println("Enter the Name of the song or the artist you wish to search\n\n");
-    	Scanner inputSearch =new Scanner(System.in);
-       System.out.println( makeGetRequest(inputSearch.nextLine()));
-       inputSearch.close();
+    
+    static void AddNewBadWord(String badWord)
+    {
+    	if(!wordsToFilter.isEmpty())
+    	{
+    		wordsToFilter.add(badWord);
+    	}
+    	
+    	///Add to file 
+    	try(FileWriter writer = new FileWriter(MyTokens.BadWordsSource, true)) {
+			writer.write(badWord);
+		} catch (Exception e) {
+			System.err.println("Error appending to file: " + e.getMessage());
+		}
     }
+    
+    static Map<Boolean,List<String>> checkIfHasBadWord(String lyricsBody) {
+ 
+    	Boolean returnBool=false;
+    	List<String> badWordsFound=new ArrayList<String>();
+        for (String badword : wordsToFilter) {
+            if(lyricsBody.contains(badword))
+            {
+               returnBool=true;
+               badWordsFound.add(badword);
+            }
+		}
+        return Map.of(returnBool,badWordsFound);
+    }
+    
+    ///Remove an Item from the bad words List
 }
