@@ -14,7 +14,8 @@ public class ListenSafe {
     static String apiMainUrl="https://api.genius.com/";
 	//Get the list of words to filter
 	static List<String> wordsToFilter=getExplicitWords();
-
+	
+	//Takes in a search string and returns a List of JSON Objects
     static List<JSONObject>search(String searchString)
     {
     	searchString= URLEncoder.encode(searchString, StandardCharsets.UTF_8);;
@@ -48,6 +49,7 @@ public class ListenSafe {
         return searchResult;
     }
 
+    //From The lyrics url obtained in the JSON you get a a string of Lyrics
     static String getLyrics(String lyricsUrl)
     {  
     	String lyricsBody="";
@@ -66,6 +68,7 @@ public class ListenSafe {
     	return lyricsBody;
     }
     
+    ///Retrieve explicit words from the file
     static List<String> getExplicitWords()
     {
     	List<String> res=new ArrayList<String>();
@@ -86,6 +89,7 @@ public class ListenSafe {
     	return res;
     }
     
+    ///Add a new bad word to the List
     static void AddNewBadWord(String badWord)
     {
     	if(!wordsToFilter.isEmpty())
@@ -101,6 +105,7 @@ public class ListenSafe {
 		}
     }
     
+    //Return a map of whether the Lyrics has a bad word and the List of the bad Words
     static Map<Boolean,List<String>> checkIfHasBadWord(String lyricsBody) {
  
     	Boolean returnBool=false;
